@@ -3,8 +3,10 @@
 import { randomBytes, randomInt } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { waitUntil } from '@vercel/functions'
-import type { RoomRequest, RoomResponse, RoomView } from '@monopoly-vn/engine'
-import { cleanJoin, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc } from '@monopoly-vn/engine/room'
+// Relative source import on purpose: Vercel compiles these .ts files to .js but does not rewrite the
+// engine package.json `exports` (which point at .ts), so `@monopoly-vn/engine/room` crashes at runtime.
+import type { RoomRequest, RoomResponse, RoomView } from '../../../packages/engine/src/protocol.js'
+import { cleanJoin, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc } from '../../../packages/engine/src/room.js'
 
 const MAX_BODY = 16 * 1024
 const RETRIES = 5

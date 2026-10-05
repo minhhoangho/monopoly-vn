@@ -18,7 +18,7 @@ Deploy/setup: [docs/deploy.md](docs/deploy.md).
 ## Layout
 ```
 packages/engine/src/engine.ts  # pure game rules (R1-R24) + board/card data re-export
-packages/engine/src/room.ts    # pure room rules (F1-F12): join, start, timeouts, drops. Import via @monopoly-vn/engine/room
+packages/engine/src/room.ts    # pure room rules (F1-F12): join, start, timeouts, drops
 packages/engine/src/protocol.ts# request/response/view types shared by API and client
 apps/client/api/room.ts        # Vercel Function POST /api/room: load doc -> reduceRoom -> save (optimistic lock) -> broadcast
 apps/client/src/net.ts         # client transport: fetch /api/room + Supabase channel `room:<code>` + heartbeat/tick
@@ -38,6 +38,7 @@ supabase/migrations/           # SQL schema + RLS
 - Dice result comes from the server. Client animates dice to land on that result; never read results from physics.
 - Keep 3D scene state derived from game state; no game logic inside components or render loops.
 - Engine source uses `.js` import suffixes (works in Vite, Vitest and Node ESM on Vercel).
+- `api/*.ts` must import engine by relative path (`../../../packages/engine/src/*.js`), not `@monopoly-vn/engine`: Vercel compiles the .ts but the package `exports` still point at .ts and crash at runtime.
 
 ## Language
 - Talk to the user in Vietnamese.
