@@ -1,5 +1,6 @@
 // Pure room rules (F1-F12): the Vercel API loads a RoomDoc from Postgres, calls reduceRoom, saves it back.
 // No timers live anywhere: deadlines are stored and enforced whenever any request (tick/heartbeat) arrives.
+import { botAcceptsTrade, botAction } from './bot.js'
 import { applyAction, createGame, endByTime, START_MONEY, timeoutAction, TOKENS, type GameState, type Rng } from './engine.js'
 import type { RoomConfig, RoomRequest, RoomView } from './protocol.js'
 
@@ -10,6 +11,10 @@ export const OFFLINE_MS = 40_000
 export const DROP_MS = 120_000
 export const REJOIN_FAILED = 'Không thể vào lại phòng'
 export const DEFAULT_CONFIG: RoomConfig = { startMoney: START_MONEY, turnSeconds: 60, gameMinutes: 0 }
+/** Pause between computer moves so people can follow them: longer after a roll (dice + token animation). */
+export const BOT_STEP_MS = 800
+export const BOT_ROLL_STEP_MS = 2500
+const BOT_NAMES = ['Máy Tí', 'Máy Tèo', 'Máy Bờm', 'Máy Cuội', 'Máy Mít']
 
 export interface Seat {
   id: string
@@ -17,6 +22,10 @@ export interface Seat {
   name: string
   token: number
   lastSeen: number
+  /** Left or dropped mid-game: seat kept for the scoreboard, never counted as online. */
+  left?: boolean
+  /** Computer player (F13): acts on ticks, never drops, has no client. */
+  bot?: boolean
 }
 
 export interface RoomDoc {
@@ -93,8 +102,9 @@ export function reduceRoom(doc: RoomDoc, req: RoomRequest, ctx: RoomContext): Ro
   }
 
   housekeeping(d, ctx)
-  if (d.seats.length === 0) return { ok: true, doc: null }
-  const online = d.seats.filter((s) => ctx.now - s.lastSeen < OFFLINE_MS).map((s) => s.id).join(',')
+  // No people left (lobby: none seated; game: everyone left or dropped) -> delete the room
+  if (!d.seats.some((s) => !s.bot && !s.left)) return { ok: true, doc: null }
+  const online = roomView(d, ctx.now).players.filter((p) => p.connected).map((p) => p.id).join(',')
   if (JSON.stringify(roomView(d, 0)) !== before || online !== d.online) {
     d.online = online
     d.version++
@@ -113,6 +123,21 @@ function handle(d: RoomDoc, seat: Seat, req: Exclude<RoomRequest, { t: 'create' 
       const config = cleanConfig(req.config)
       if (!config) return 'Cấu hình không hợp lệ'
       d.config = config
+      return
+    }
+    case 'addBot': {
+      if (d.hostId !== seat.id || d.game) return 'Chỉ chủ phòng được thêm máy trước khi bắt đầu'
+      if (d.seats.length >= 6) return 'Phòng đã đủ 6 người'
+      const token = TOKENS.findIndex((_, t) => !d.seats.some((s) => s.token === t))
+      const name = BOT_NAMES.find((n) => !d.seats.some((s) => s.name === n)) ?? 'Máy'
+      d.seats.push({ ...ctx.newSeat(), name, token, lastSeen: ctx.now, bot: true })
+      return
+    }
+    case 'removeBot': {
+      if (d.hostId !== seat.id || d.game) return 'Chỉ chủ phòng được bớt máy trước khi bắt đầu'
+      const bot = d.seats.find((s) => s.bot && s.id === req.botId)
+      if (!bot) return 'Không tìm thấy máy'
+      d.seats = d.seats.filter((s) => s !== bot)
       return
     }
     case 'start':
@@ -141,24 +166,42 @@ function handle(d: RoomDoc, seat: Seat, req: Exclude<RoomRequest, { t: 'create' 
   }
 }
 
-/** Enforce everything time-based: dropped players, game time limit, turn timeout. */
+const botIds = (d: RoomDoc) => d.seats.filter((s) => s.bot).map((s) => s.id)
+
+/** Enforce everything time-based: dropped players, game time limit, turn timeout, computer moves. */
 function housekeeping(d: RoomDoc, ctx: RoomContext) {
-  for (const s of [...d.seats]) if (ctx.now - s.lastSeen > DROP_MS) removeSeat(d, s, ctx) // F11
+  for (const s of [...d.seats]) if (!s.bot && !s.left && ctx.now - s.lastSeen > DROP_MS) removeSeat(d, s, ctx) // F11
 
   if (d.game && d.game.phase !== 'ended' && d.gameDeadline !== null && ctx.now >= d.gameDeadline) d.game = endByTime(d.game) // R24
+  // F15: only computers left playing -> stop now, richest wins
+  const humanPlaying = d.game?.players.some((p) => !p.bankrupt && !botIds(d).includes(p.id))
+  if (d.game && d.game.phase !== 'ended' && !humanPlaying) d.game = endByTime(d.game)
 
+  let botStep = 0 // ms until the computer's next move, 0 = no computer moved
   const g = d.game
   if (g && g.phase !== 'ended' && d.turnDeadline !== null && ctx.now >= d.turnDeadline) {
-    // F8 (and F12: an offline player's turn times out the same way)
-    const action = timeoutAction(g)
-    const r = action && applyAction(g, g.players[g.current].id, action, ctx.rng)
+    // F8 timeout (F12: offline players too), or the computer's next step (F14)
+    const id = g.players[g.current].id
+    const isBot = botIds(d).includes(id)
+    const action = isBot ? botAction(g, id, botIds(d)) : timeoutAction(g)
+    if (isBot) botStep = action?.type === 'roll' ? BOT_ROLL_STEP_MS : BOT_STEP_MS
+    const r = action && applyAction(g, id, action, ctx.rng)
     if (r && r.ok) d.game = r.state
   }
-  scheduleTurn(d, ctx.now)
+  answerBotTrade(d, ctx)
+  scheduleTurn(d, ctx.now, botStep)
 }
 
-/** Restart the turn timer whenever the turn, phase or roll changes. */
-function scheduleTurn(d: RoomDoc, now: number) {
+/** A trade offered to a computer is answered immediately. */
+function answerBotTrade(d: RoomDoc, ctx: RoomContext) {
+  const t = d.game?.trade
+  if (!d.game || !t || !botIds(d).includes(t.to)) return
+  const r = applyAction(d.game, t.to, { type: botAcceptsTrade(d.game, t) ? 'acceptTrade' : 'rejectTrade' }, ctx.rng)
+  if (r.ok) d.game = r.state
+}
+
+/** Restart the turn timer whenever the turn, phase or roll changes; computers get a short step timer. */
+function scheduleTurn(d: RoomDoc, now: number, botStep = 0) {
   const g = d.game
   if (!g || g.phase === 'ended') {
     d.turnDeadline = null
@@ -166,9 +209,10 @@ function scheduleTurn(d: RoomDoc, now: number) {
     return
   }
   const key = `${g.current}:${g.phase}:${g.rollCount}`
-  if (key === d.turnKey) return
+  if (key === d.turnKey && !botStep) return
   d.turnKey = key
-  d.turnDeadline = now + d.config.turnSeconds * 1000
+  const botTurn = botIds(d).includes(g.players[g.current].id)
+  d.turnDeadline = now + (botTurn ? botStep || BOT_STEP_MS : d.config.turnSeconds * 1000)
 }
 
 function removeSeat(d: RoomDoc, seat: Seat, ctx: RoomContext) {
@@ -179,10 +223,11 @@ function removeSeat(d: RoomDoc, seat: Seat, ctx: RoomContext) {
       const r = applyAction(d.game, seat.id, { type: 'resign' }, ctx.rng)
       if (r.ok) d.game = r.state
     }
-    seat.lastSeen = 0 // left: show as offline, never "back" without a rejoin
+    seat.left = true
   }
   if (d.hostId === seat.id) {
-    const next = d.seats.find((s) => s !== seat && ctx.now - s.lastSeen < OFFLINE_MS) ?? d.seats.find((s) => s !== seat)
+    const humans = d.seats.filter((s) => s !== seat && !s.bot && !s.left)
+    const next = humans.find((s) => ctx.now - s.lastSeen < OFFLINE_MS) ?? humans[0]
     if (next) d.hostId = next.id
   }
 }
@@ -200,7 +245,13 @@ export function roomView(d: RoomDoc, now: number): RoomView {
     code: d.code,
     hostId: d.hostId,
     config: d.config,
-    players: d.seats.map((s) => ({ id: s.id, name: s.name, token: s.token, connected: now - s.lastSeen < OFFLINE_MS })),
+    players: d.seats.map((s) => ({
+      id: s.id,
+      name: s.name,
+      token: s.token,
+      connected: !!s.bot || (!s.left && now - s.lastSeen < OFFLINE_MS),
+      bot: !!s.bot,
+    })),
     game: d.game && { ...d.game, decks: { chance: [], chest: [] } },
     turnDeadline: d.turnDeadline,
     gameDeadline: d.gameDeadline,

@@ -43,7 +43,12 @@ async function create(req: Extract<RoomRequest, { t: 'create' }>): Promise<RoomR
   for (let attempt = 0; attempt < RETRIES; attempt++) {
     const seat = newSeat()
     const now = Date.now()
-    const doc = newRoom(newCode(), { ...seat, ...player }, now)
+    let doc = newRoom(newCode(), { ...seat, ...player }, now)
+    const bots = Number.isInteger(req.bots) ? Math.min(Math.max(req.bots!, 0), 5) : 0
+    for (let i = 0; i < bots; i++) {
+      const r = reduceRoom(doc, { t: 'addBot', code: doc.code, ...seat }, { now, rng, newSeat })
+      if (r.ok && r.doc) doc = r.doc
+    }
     const { error } = await db.from('rooms').insert({ code: doc.code, doc, rev: 0 })
     if (!error) return { ok: true, room: roomView(doc, now), welcome: { code: doc.code, ...seat } }
     if (error.code !== '23505') throw error // anything but a code collision

@@ -9,9 +9,9 @@ export function Home({ conn }: { conn: Connection }) {
   const [code, setCode] = useState(() => new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '')
   const ready = name.trim().length > 0 && conn.online
 
-  const go = (msg: 'create' | 'join') => {
+  const go = (msg: 'create' | 'join', bots = 0) => {
     save('name', name.trim())
-    if (msg === 'create') conn.send({ t: 'create', name, token })
+    if (msg === 'create') conn.send({ t: 'create', name, token, bots })
     else conn.send({ t: 'join', code, name, token })
   }
 
@@ -36,6 +36,9 @@ export function Home({ conn }: { conn: Connection }) {
         </div>
         <button className="primary big" disabled={!ready} onClick={() => go('create')}>
           Tạo phòng mới
+        </button>
+        <button className="big" disabled={!ready} onClick={() => go('create', 3)}>
+          🤖 Chơi với máy
         </button>
         <div className="join">
           <input
@@ -88,10 +91,17 @@ export function Lobby({ conn, room, me }: { conn: Connection; room: RoomView; me
               {TOKEN_ICONS[p.token]} {p.name}
               {p.id === room.hostId && <small> · chủ phòng</small>}
               {p.id === me && <small> · bạn</small>}
+              {p.bot && <small> · 🤖 máy</small>}
               {!p.connected && <small className="warn-text"> · mất kết nối</small>}
+              {p.bot && isHost && (
+                <button className="link remove" onClick={() => conn.send({ t: 'removeBot', botId: p.id })}>
+                  Bỏ
+                </button>
+              )}
             </li>
           ))}
         </ul>
+        {isHost && room.players.length < 6 && <button onClick={() => conn.send({ t: 'addBot' })}>🤖 Thêm máy</button>}
 
         <fieldset disabled={!isHost}>
           <label className="field">

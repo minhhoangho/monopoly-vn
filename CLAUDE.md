@@ -18,7 +18,8 @@ Deploy/setup: [docs/deploy.md](docs/deploy.md).
 ## Layout
 ```
 packages/engine/src/engine.ts  # pure game rules (R1-R24) + board/card data re-export
-packages/engine/src/room.ts    # pure room rules (F1-F12): join, start, timeouts, drops
+packages/engine/src/room.ts    # pure room rules (F1-F15): join, start, timeouts, drops, computer turns
+packages/engine/src/bot.ts     # computer player: picks one legal action per call (validated via applyAction)
 packages/engine/src/protocol.ts# request/response/view types shared by API and client
 apps/client/api/room.ts        # Vercel Function POST /api/room: load doc -> reduceRoom -> save (optimistic lock) -> broadcast
 apps/client/src/net.ts         # client transport: fetch /api/room + Supabase channel `room:<code>` + heartbeat/tick

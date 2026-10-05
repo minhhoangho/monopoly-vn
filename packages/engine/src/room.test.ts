@@ -1,6 +1,6 @@
-import { expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { RoomRequest } from './protocol.js'
-import { DROP_MS, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc, type Seat } from './room.js'
+import { BOT_ROLL_STEP_MS, BOT_STEP_MS, DROP_MS, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc, type Seat } from './room.js'
 
 let ids = 0
 const ctx = (now: number) => ({ now, rng: Math.random, newSeat: () => ({ id: `p${++ids}`, secret: `s${ids}` }) })
@@ -112,4 +112,56 @@ it('leaving the lobby moves host; last one out deletes the room', () => {
   const left = ok(joined.doc!, { t: 'leave', ...auth(joined.doc!, host) }).doc!
   expect(left.hostId).toBe(guest.id)
   expect(ok(left, { t: 'leave', ...auth(left, guest) }).doc).toBeNull()
+})
+
+describe('computer players (F13-F15)', () => {
+  const host = { id: 'host', secret: 'hs', name: 'An', token: 0 }
+  /** One person + 2 computers, game started. */
+  function vsBots() {
+    let doc = newRoom('BOT123', host, 0)
+    doc = ok(doc, { t: 'addBot', ...auth(doc, host) }).doc!
+    doc = ok(doc, { t: 'addBot', ...auth(doc, host) }).doc!
+    return ok(doc, { t: 'start', ...auth(doc, host) }).doc!
+  }
+
+  it('F13: host adds and removes bots in the lobby', () => {
+    const doc = ok(newRoom('BOT123', host, 0), { t: 'addBot', ...auth(newRoom('BOT123', host, 0), host) }).doc!
+    const bot = roomView(doc, 999_999).players[1]
+    expect(bot).toMatchObject({ name: 'Máy Tí', token: 1, bot: true, connected: true })
+    const removed = ok(doc, { t: 'removeBot', botId: bot.id, ...auth(doc, host) }).doc!
+    expect(removed.seats).toHaveLength(1)
+  })
+
+  it('F14: a bot moves one step per tick at its short deadline', () => {
+    const doc = vsBots()
+    const botTurn = { ...doc, turnKey: '', game: { ...doc.game!, current: doc.game!.players.findIndex((p) => p.id !== host.id) } }
+    const scheduled = ok(botTurn, { t: 'heartbeat', ...auth(botTurn, host) }, 10).doc!
+    expect(scheduled.turnDeadline).toBe(10 + BOT_STEP_MS)
+    const moved = ok(scheduled, { t: 'tick', ...auth(scheduled, host) }, 10 + BOT_STEP_MS).doc!
+    expect(moved.game!.rollCount).toBe(1)
+    expect(moved.turnDeadline).toBe(10 + BOT_STEP_MS + BOT_ROLL_STEP_MS) // longer pause after a roll
+  })
+
+  it('F14: trades offered to a bot are answered at once', () => {
+    const doc = vsBots()
+    const game = { ...doc.game!, current: doc.game!.players.findIndex((p) => p.id === host.id) }
+    const bot = game.players.find((p) => p.id !== host.id)!.id
+    game.squares = game.squares.map((o, i) => (o && i === 1 ? { ...o, owner: bot } : o))
+    const d = { ...doc, game }
+    const trade = { to: bot, giveSquares: [], getSquares: [1], giveMoney: 5_000_000, getMoney: 0, giveJailCards: 0, getJailCards: 0 }
+    const r = ok(d, { t: 'action', action: { type: 'proposeTrade', trade }, ...auth(d, host) }).doc!
+    expect(r.game!.trade).toBeNull()
+    expect(r.game!.squares[1]!.owner).toBe(host.id)
+  })
+
+  it('F15: when the last person is out, the game ends; leaving deletes the room', () => {
+    const doc = vsBots()
+    const resigned = ok(doc, { t: 'action', action: { type: 'resign' }, ...auth(doc, host) }).doc!
+    expect(resigned.game!.phase).toBe('ended')
+    expect(resigned.game!.winner).not.toBe(host.id)
+    expect(ok(resigned, { t: 'leave', ...auth(resigned, host) }).doc).toBeNull()
+
+    const lobby = ok(newRoom('BOT123', host, 0), { t: 'addBot', ...auth(newRoom('BOT123', host, 0), host) }).doc!
+    expect(ok(lobby, { t: 'leave', ...auth(lobby, host) }).doc).toBeNull()
+  })
 })

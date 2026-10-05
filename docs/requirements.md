@@ -16,7 +16,7 @@ Bàn cờ dùng địa danh Việt Nam, tiền VNĐ, thẻ sự kiện mang văn
 3. Chơi trọn một ván không lỗi đồng bộ, có thể vào lại khi rớt mạng.
 
 ### Ngoài phạm vi MVP
-Tài khoản/đăng nhập, bảng xếp hạng, bot AI, đấu giá, chat thoại, in-app purchase, app native.
+Tài khoản/đăng nhập, bảng xếp hạng, đấu giá, chat thoại, in-app purchase, app native.
 
 ## 2. Thuật ngữ
 
@@ -155,6 +155,11 @@ Tài khoản/đăng nhập, bảng xếp hạng, bot AI, đấu giá, chat tho�
 - F11. Quá hạn không vào lại → người chơi bị loại, tài sản trả về ngân hàng.
 - F12. Đang tới lượt người rớt mạng → áp dụng F8.
 
+### 5.4 Chơi với máy
+- F13. Nút "Chơi với máy" ở trang chủ tạo phòng có sẵn 3 máy. Trong sảnh, chủ phòng thêm/bỏ máy (tổng tối đa 6 ghế).
+- F14. Máy chạy trên server và đi từng bước để người chơi theo dõi (~2,5 giây sau mỗi lần đổ, ~0,8 giây sau thao tác khác). Máy mua đất khi còn tiền dự phòng, xây nhà khi đủ nhóm màu, bán nhà/thế chấp khi nợ, trả lời đề nghị giao dịch ngay. Máy chỉ chủ động giao dịch với máy khác để gom đủ nhóm màu, không gửi đề nghị cho người.
+- F15. Khi không còn người nào đang chơi (phá sản, rời ván hoặc rớt mạng), ván kết thúc ngay và ai giàu nhất thắng. Phòng bị xoá khi mọi người đã rời đi.
+
 ## 6. Giao diện (UI/UX)
 - U1. Màn hình: Trang chủ → Sảnh chờ phòng → Bàn cờ → Kết quả. Trang chủ/sảnh là HTML; bàn cờ là cảnh 3D.
 - U2. Bàn cờ 3D: 40 ô, quân cờ 3D, nhà/khách sạn 3D, chủ sở hữu (cờ/viền màu người chơi trên ô).
@@ -197,7 +202,7 @@ Tài khoản/đăng nhập, bảng xếp hạng, bot AI, đấu giá, chat tho�
 |---|---|
 | P0 — Engine | Engine luật thuần TS + unit test đầy đủ mục 4 |
 | P1 — MVP online | Server phòng + client 3D (bàn cờ, quân cờ, xúc xắc, nhà đơn giản), chơi trọn ván, vào lại khi rớt mạng |
-| P2 — Mở rộng | Mô hình địa danh 3D chi tiết, đấu giá, chat, bot AI thay người rớt mạng, luật nhà (house rules) |
+| P2 — Mở rộng | Mô hình địa danh 3D chi tiết, đấu giá, chat, máy thay người rớt mạng, mức độ khó của máy, luật nhà (house rules) |
 | P3 — Cộng đồng | Tài khoản, lịch sử ván, bảng xếp hạng, sự kiện Tết theo mùa |
 
 ## 9. Câu hỏi mở

@@ -13,7 +13,7 @@ export interface RoomView {
   code: string
   hostId: string
   config: RoomConfig
-  players: { id: string; name: string; token: number; connected: boolean }[]
+  players: { id: string; name: string; token: number; connected: boolean; bot: boolean }[]
   /** Card deck order is hidden from clients (N3). */
   game: GameState | null
   turnDeadline: number | null
@@ -33,19 +33,21 @@ export interface Auth {
 
 /** What the UI asks for; the client adds Auth before sending. */
 export type ClientMsg =
-  | { t: 'create'; name: string; token: number }
+  | { t: 'create'; name: string; token: number; bots?: number }
   | { t: 'join'; code: string; name: string; token: number }
   | { t: 'config'; config: RoomConfig }
-  | { t: 'start' }
+  | { t: 'start' | 'addBot' | 'leave' }
+  | { t: 'removeBot'; botId: string }
   | { t: 'action'; action: Action }
-  | { t: 'leave' }
 
 export type RoomRequest =
-  | { t: 'create'; name: string; token: number }
+  /** bots: computer players to seat right away (F13) */
+  | { t: 'create'; name: string; token: number; bots?: number }
   | { t: 'join'; code: string; name: string; token: number }
   | (Auth &
       (
-        | { t: 'rejoin' | 'heartbeat' | 'tick' | 'start' | 'leave' }
+        | { t: 'rejoin' | 'heartbeat' | 'tick' | 'start' | 'leave' | 'addBot' }
+        | { t: 'removeBot'; botId: string }
         | { t: 'config'; config: RoomConfig }
         | { t: 'action'; action: Action }
       ))

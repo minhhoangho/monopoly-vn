@@ -98,7 +98,9 @@ function Countdown({ room, skew }: { room: RoomView; skew: number }) {
     return () => clearInterval(t)
   }, [])
   const left = (deadline: number | null) => (deadline === null ? null : Math.max(0, deadline - (now - skew)))
-  const turn = left(room.turnDeadline)
+  const g = room.game
+  const botTurn = !!g && !!room.players.find((p) => p.id === g.players[g.current].id)?.bot
+  const turn = botTurn ? null : left(room.turnDeadline) // computer moves every 1-3s: no countdown
   const total = left(room.gameDeadline)
   const mmss = (ms: number) => `${Math.floor(ms / 60_000)}:${String(Math.floor((ms % 60_000) / 1000)).padStart(2, '0')}`
   return (
@@ -130,6 +132,7 @@ function PlayerPanel({ room, me, onSelect }: { room: RoomView; me: string; onSel
               {idx === game.current && game.phase !== 'ended' && <span className="badge turn">Đang đi</span>}
               {p.inJail && <span className="badge">Trong tù</span>}
               {p.jailCards.length > 0 && <span className="badge">Thẻ ra tù ×{p.jailCards.length}</span>}
+              {conn?.bot && <span className="badge">🤖 Máy</span>}
               {conn && !conn.connected && !p.bankrupt && <span className="badge warn">Mất kết nối</span>}
             </div>
             {owned.length > 0 && (

@@ -557,3 +557,7 @@ fieldset {
     grid-template-columns: 1fr;
   }
 }
+.lobby-players .remove {
+  margin-left: auto;
+  padding: 0 4px;
+}
