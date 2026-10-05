@@ -38,6 +38,7 @@ supabase/migrations/           # SQL schema + RLS
 - Money is integer VND. No floats.
 - Dice result comes from the server. Client animates dice to land on that result; never read results from physics.
 - Keep 3D scene state derived from game state; no game logic inside components or render loops.
+- Landmark photos: only freely licensed images (Wikimedia Commons CC0/PD/CC BY/CC BY-SA), served from `apps/client/public/landmarks/<square>.jpg` (same origin, or the board canvas gets tainted). Every photo needs an entry in `apps/client/src/landmarks.json` (author, licence, source) which the UI shows as credit.
 - Engine source uses `.js` import suffixes (works in Vite, Vitest and Node ESM on Vercel).
 - `api/*.ts` must import engine by relative path (`../../../packages/engine/src/*.js`), not `@monopoly-vn/engine`: Vercel compiles the .ts but the package `exports` still point at .ts and crash at runtime.
 

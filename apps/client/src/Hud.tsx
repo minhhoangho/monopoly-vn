@@ -16,7 +16,7 @@ import {
 } from '@monopoly-vn/engine'
 import type { Connection } from './net'
 import { Scene, type Controls, type Quality } from './scene/Scene'
-import { formatShort, load, playerColor, save, TOKEN_ICONS } from './util'
+import { formatShort, landmarkOf, landmarkPhoto, load, playerColor, save, TOKEN_ICONS } from './util'
 
 interface Props {
   conn: Connection
@@ -266,6 +266,7 @@ function SquarePanel({ i, room, me, act, onClose }: { i: number; room: RoomView;
   const o = game.squares[i]
   const owner = o?.owner ? game.players.find((p) => p.id === o.owner) : null
   const mine = o?.owner === me && game.players[game.current].id === me && game.phase !== 'ended'
+  const landmark = landmarkOf(i)
 
   return (
     <div className="panel square-panel">
@@ -275,6 +276,18 @@ function SquarePanel({ i, room, me, act, onClose }: { i: number; room: RoomView;
           ✕
         </button>
       </div>
+      {landmark && (
+        <figure className="landmark">
+          <img src={landmarkPhoto(i)} alt={landmark.landmark} />
+          <figcaption>
+            {landmark.landmark} · Ảnh:{' '}
+            <a href={landmark.source} target="_blank" rel="noopener noreferrer">
+              {landmark.author}
+            </a>
+            , {landmark.license}
+          </figcaption>
+        </figure>
+      )}
       <div className="square-body">
         {'price' in sq && <Row label="Giá mua" value={formatMoney(sq.price)} />}
         {sq.kind === 'property' && (

@@ -564,3 +564,21 @@ fieldset {
   margin-left: auto;
   padding: 0 4px;
 }
+
+.landmark {
+  margin: 0;
+}
+.landmark img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.landmark figcaption {
+  padding: 4px 12px 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+.landmark a {
+  color: inherit;
+}

@@ -1,6 +1,19 @@
 import { PLAYER_COLORS, type RoomView } from '@monopoly-vn/engine'
+import landmarks from './landmarks.json'
 
 export const TOKEN_ICONS = ['👒', '🥁', '🟩', '🛺', '🪷', '🛵']
+
+/** Landmark photos from Wikimedia Commons (free licences); CC BY/BY-SA require showing author + licence. */
+export interface Landmark {
+  square: number
+  landmark: string
+  author: string
+  license: string
+  source: string
+}
+export const LANDMARKS: Landmark[] = landmarks
+export const landmarkOf = (square: number) => LANDMARKS.find((l) => l.square === square)
+export const landmarkPhoto = (square: number) => `${import.meta.env.BASE_URL}landmarks/${square}.jpg`
 
 /** U6 short money format: 2.000.000 -> "2Tr", 600.000 -> "600K". */
 export function formatShort(n: number) {

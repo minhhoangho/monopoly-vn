@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CanvasTexture, SRGBColorSpace, type Group } from 'three'
 import { BOARD, GO_SALARY, GROUP_COLORS, type GameState, type RoomView, type Square } from '@monopoly-vn/engine'
-import { formatShort, playerColor } from '../util'
+import { formatShort, LANDMARKS, landmarkPhoto, playerColor } from '../util'
 
 // --- layout (world units, board top at y = 0, GO at the bottom-right like the classic board) ---
 export const CORNER = 1.6
@@ -45,7 +45,27 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number) {
   return lines
 }
 
-function drawCell(ctx: CanvasRenderingContext2D, sq: Square, i: number) {
+/** Draw a photo into a local-units box, cropped to fill it (like CSS object-fit: cover). */
+function drawPhoto(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+  const box = w / h
+  let [sx, sy, sw, sh] = [0, 0, img.width, img.height]
+  if (img.width / img.height > box) {
+    sw = img.height * box
+    sx = (img.width - sw) / 2
+  } else {
+    sh = img.width / box
+    sy = (img.height - sh) / 2
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x * U, y * U, w * U, h * U)
+  ctx.strokeStyle = 'rgba(59, 42, 26, 0.5)'
+  ctx.lineWidth = 2
+  ctx.strokeRect(x * U, y * U, w * U, h * U)
+}
+
+type Photos = Map<number, HTMLImageElement>
+
+function drawCell(ctx: CanvasRenderingContext2D, sq: Square, i: number, photos: Photos) {
+  const photo = photos.get(i)
   const f = squareFrame(i)
   const w = cellWidth(i) * U
   const d = CORNER * U
@@ -69,14 +89,26 @@ function drawCell(ctx: CanvasRenderingContext2D, sq: Square, i: number) {
     case 'property':
       ctx.fillStyle = GROUP_COLORS[sq.group]
       ctx.fillRect(-w / 2, -d / 2, w, 0.36 * U)
-      text(sq.name, -0.1, 0.15, 700)
-      text(formatShort(sq.price), 0.6, 0.14, 500)
+      if (photo) {
+        text(sq.name, -0.3, 0.12, 700)
+        drawPhoto(ctx, photo, -0.45, -0.15, 0.9, 0.62)
+        text(formatShort(sq.price), 0.64, 0.13, 600)
+      } else {
+        text(sq.name, -0.1, 0.15, 700)
+        text(formatShort(sq.price), 0.6, 0.14, 500)
+      }
       break
     case 'airport':
     case 'utility':
-      text(sq.name, -0.5, 0.12, 700)
-      text(sq.kind === 'airport' ? '✈' : i === 12 ? '⚡' : '💧', 0.12, 0.42, 400, '#1f4e9e')
-      text(formatShort(sq.price), 0.6, 0.14, 500)
+      if (photo) {
+        text(sq.name, -0.6, 0.11, 700)
+        drawPhoto(ctx, photo, -0.45, -0.42, 0.9, 0.88)
+        text(formatShort(sq.price), 0.64, 0.13, 600)
+      } else {
+        text(sq.name, -0.5, 0.12, 700)
+        text(sq.kind === 'airport' ? '✈' : i === 12 ? '⚡' : '💧', 0.12, 0.42, 400, '#1f4e9e')
+        text(formatShort(sq.price), 0.6, 0.14, 500)
+      }
       break
     case 'chance':
       text('CƠ HỘI', -0.5, 0.14, 800)
@@ -131,7 +163,7 @@ function drawCell(ctx: CanvasRenderingContext2D, sq: Square, i: number) {
   ctx.restore()
 }
 
-function drawBoard(ctx: CanvasRenderingContext2D) {
+function drawBoard(ctx: CanvasRenderingContext2D, photos: Photos) {
   ctx.fillStyle = '#efe4c8'
   ctx.fillRect(0, 0, S, S)
 
@@ -170,7 +202,7 @@ function drawBoard(ctx: CanvasRenderingContext2D) {
   ctx.fillText('VIỆT NAM', 0, 0.5 * U)
   ctx.restore()
 
-  BOARD.forEach((sq, i) => drawCell(ctx, sq, i))
+  BOARD.forEach((sq, i) => drawCell(ctx, sq, i, photos))
 }
 
 function useBoardTexture() {
@@ -183,12 +215,31 @@ function useBoardTexture() {
     return t
   }, [])
   useEffect(() => {
+    let alive = true
+    const photos: Photos = new Map()
     const draw = () => {
-      drawBoard((texture.image as HTMLCanvasElement).getContext('2d')!)
+      if (!alive) return
+      drawBoard((texture.image as HTMLCanvasElement).getContext('2d')!, photos)
       texture.needsUpdate = true
     }
     draw()
-    document.fonts.ready.then(draw) // redraw once the web font is in
+    // Photos are same-origin (public/landmarks) so the canvas stays untainted for WebGL. A missing photo just keeps the plain cell.
+    const loads = LANDMARKS.map(
+      ({ square }) =>
+        new Promise<void>((done) => {
+          const img = new Image()
+          img.onload = () => {
+            photos.set(square, img)
+            done()
+          }
+          img.onerror = () => done()
+          img.src = landmarkPhoto(square)
+        }),
+    )
+    Promise.all([document.fonts.ready, ...loads]).then(draw) // redraw once font and photos are in
+    return () => {
+      alive = false
+    }
   }, [texture])
   return texture
 }
