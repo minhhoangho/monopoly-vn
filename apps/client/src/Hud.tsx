@@ -159,7 +159,7 @@ function PlayerPanel({ room, me, onSelect }: { room: RoomView; me: string; onSel
 }
 
 function LogPanel({ lines }: { lines: string[] }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(() => window.innerWidth > 900) // collapsed on phones so it doesn't cover the board
   return (
     <div className={`panel log-panel ${open ? '' : 'closed'}`}>
       <button className="log-toggle" onClick={() => setOpen(!open)}>
