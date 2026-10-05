@@ -1,0 +1,13 @@
+{
+  "name": "@monopoly-vn/engine",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/engine.ts",
+    "./room": "./src/room.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p ."
+  }
+}
