@@ -126,7 +126,7 @@ Tài khoản/đăng nhập, bảng xếp hạng, đấu giá, chat thoại, in-a
 - R24. Thắng: người cuối cùng còn lại. Tuỳ chọn giới hạn thời gian: hết giờ, ai tổng tài sản cao nhất thắng.
 
 ### 4.9 Thẻ Cơ hội / Khí vận
-16 thẻ mỗi chồng, xáo khi bắt đầu, rút hết thì xáo lại. Nội dung mang văn hoá Việt, ví dụ:
+Cơ hội 16 thẻ, Khí vận 30 thẻ (16 thẻ thường + 14 thẻ "troll" đời thường: sinh nhật bồ nhí, có con riêng, vợ phát hiện quỹ đen, mẹ vợ lên chơi, khoe trúng số bị đòi khao...). Xáo khi bắt đầu, rút thẻ cuối thì đặt xuống đáy chồng. Thẻ có thể: nhận/trả tiền ngân hàng, đi tới ô, lùi ô, vào tù, giữ thẻ ra tù, sửa nhà, **trả mỗi người chơi** hoặc **nhận từ mỗi người chơi** (ai thiếu tiền thì đưa hết số đang có). Nội dung mang văn hoá Việt, ví dụ:
 - "Lì xì Tết — nhận 1.000.000đ"
 - "Bị phạt nguội vượt đèn đỏ — trả 500.000đ"
 - "Trúng Vietlott — nhận 2.000.000đ"

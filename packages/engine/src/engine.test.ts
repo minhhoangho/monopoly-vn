@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyAction,
+  CARDS,
   createGame,
   endByTime,
   GO_SALARY,
@@ -350,6 +351,39 @@ describe('cards', () => {
     expect(pl(s, 'a')).toMatchObject({ position: 23, money: START_MONEY + GO_SALARY })
     expect(s.phase).toBe('buy')
     expect(s.decks.chance.at(-1)).toBe(0)
+  })
+
+  /** a stands on 15 and rolls 1+1 onto the Khí vận square 17, drawing chest card `index`. */
+  const drawChest = (index: number, setup: (s: GameState) => void = () => {}) => {
+    const s0 = game(3)
+    pl(s0, 'a').position = 15
+    s0.decks.chest = [index, ...s0.decks.chest.filter((i) => i !== index)]
+    setup(s0)
+    return act(s0, 'a', roll, dice(1, 1))
+  }
+
+  it('existing Khí vận cards keep their index (running games store indices)', () => {
+    expect(CARDS.chest).toHaveLength(30)
+    expect(CARDS.chest[0].text).toMatch(/^Lì xì Tết/)
+    expect(CARDS.chest[6].effect.type).toBe('jailFree')
+    expect(CARDS.chest[15].text).toMatch(/^Lãi tiết kiệm/)
+  })
+
+  it('collectEach: every other player pays, capped at what they have', () => {
+    const s = drawChest(23, (s0) => (pl(s0, 'c').money = 50_000)) // sinh nhật
+    expect(pl(s, 'a').money).toBe(START_MONEY + 200_000 + 50_000)
+    expect(pl(s, 'b').money).toBe(START_MONEY - 200_000)
+    expect(pl(s, 'c').money).toBe(0)
+  })
+
+  it('payEach: pays every other player, short cash becomes debt', () => {
+    const s = drawChest(24) // khoe trúng số
+    expect(pl(s, 'a').money).toBe(START_MONEY - 600_000)
+    expect(pl(s, 'b').money).toBe(START_MONEY + 300_000)
+
+    const broke = drawChest(24, (s0) => (pl(s0, 'a').money = 400_000))
+    expect(broke.phase).toBe('debt')
+    expect(broke.debts).toEqual([{ to: 'c', amount: 300_000 }])
   })
 
   it('jail-free card stays with the player', () => {

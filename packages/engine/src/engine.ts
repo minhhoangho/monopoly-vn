@@ -394,6 +394,18 @@ function drawCard(s: GameState, p: Player, deck: Deck) {
       const { houses, hotels } = buildings(s, p.id)
       return charge(s, p, houses * e.perHouse + hotels * e.perHotel, null)
     }
+    case 'payEach':
+      for (const other of s.players) if (other !== p && !other.bankrupt) charge(s, p, e.amount, other.id)
+      return
+    case 'collectEach':
+      // ponytail: others pay what they can (no debt), since only the current player can carry debts
+      for (const other of s.players) {
+        if (other === p || other.bankrupt) continue
+        const paid = Math.min(e.amount, other.money)
+        other.money -= paid
+        p.money += paid
+      }
+      return
   }
 }
 

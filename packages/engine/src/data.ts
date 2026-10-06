@@ -103,6 +103,8 @@ export type CardEffect =
   | { type: 'goToJail' }
   | { type: 'jailFree' }
   | { type: 'repairs'; perHouse: number; perHotel: number }
+  | { type: 'payEach'; amount: number } // pay every other player still in the game
+  | { type: 'collectEach'; amount: number } // every other player pays you (as much as they have)
 export interface Card {
   text: string
   effect: CardEffect
@@ -147,5 +149,20 @@ export const CARDS: Record<Deck, Card[]> = {
     { text: 'Sửa đường trước nhà — 400.000đ/nhà, 1.150.000đ/khách sạn', effect: { type: 'repairs', perHouse: 40 * K, perHotel: 115 * K } },
     money('Đóng phí bảo hiểm xe — trả 500.000đ', -50),
     money('Lãi tiết kiệm — nhận 250.000đ', 25),
+    // Troll cards. Append only: running games store deck order as indices into this list.
+    money('Sinh nhật bồ nhí — mua túi hiệu hết 1.500.000đ', -150),
+    money('Lộ chuyện có con riêng — chu cấp nuôi con 2.000.000đ', -200),
+    money('Vợ phát hiện quỹ đen giấu trong ốp điện thoại — nộp lại 1.000.000đ', -100),
+    money('Bồ nhí đòi chia tay — được trả lại quà 500.000đ', 50),
+    { text: 'Bị vợ đuổi ra khỏi nhà — vào tù ngủ tạm', effect: { type: 'goToJail' } },
+    money('Đám cưới người yêu cũ — mừng cưới 500.000đ cho đỡ quê', -50),
+    money('Mẹ vợ lên chơi một tuần — bao ăn bao ở 800.000đ', -80),
+    { text: 'Hôm nay sinh nhật bạn — mỗi người chơi mừng bạn 200.000đ', effect: { type: 'collectEach', amount: 20 * K } },
+    { text: 'Khoe trúng số trên Facebook — cả làng đòi khao, trả mỗi người 300.000đ', effect: { type: 'payEach', amount: 30 * K } },
+    money('Bị lừa "con đang cấp cứu" — chuyển khoản mất 1.000.000đ', -100),
+    money('Bán hàng online bị bom hàng — lỗ 300.000đ', -30),
+    { text: 'Đi nhậu say, tỉnh dậy thấy mình ở Bãi đỗ xe', effect: { type: 'moveTo', square: 20 } },
+    { text: 'Crush nhắn "anh ngủ chưa?" — bối rối lùi 3 ô', effect: { type: 'moveBy', steps: -3 } },
+    money('Nhặt được ví của sếp, trả lại — được thưởng 300.000đ', 30),
   ],
 }
