@@ -130,7 +130,9 @@ function Dice({ room }: { room: RoomView }) {
 function FitCamera({ controls }: { controls: RefObject<Controls | null> }) {
   const { camera, size } = useThree()
   useEffect(() => {
-    const distance = 13.5 / Math.min(1, (size.width / size.height) * 1.1)
+    // Landscape: fixed distance. Portrait: back off until the board width fits the horizontal field of view.
+    const halfFovX = Math.tan((45 / 2) * (Math.PI / 180)) * (size.width / size.height)
+    const distance = Math.max(13.5, 7.4 / halfFovX)
     camera.position.set(0, distance * 0.74, distance * 0.67)
     camera.lookAt(0, 0, 0)
     controls.current?.saveState()
