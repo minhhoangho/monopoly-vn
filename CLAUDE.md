@@ -6,7 +6,8 @@ Deploy/setup: [docs/deploy.md](docs/deploy.md).
 
 ## Status
 - P0 rules engine: done, tested.
-- P1 MVP: room logic, Vercel API, 3D client done. Verified locally against the real Supabase project (rooms, broadcast, RLS spoof rejection, turn timeout). Not yet deployed to Vercel.
+- P1 MVP: room logic, Vercel API, 3D client done. Deployed at https://monopoly-vn.vercel.app (Vercel + Supabase).
+- Done since MVP: computer players, landmark photos, troll Khí vận cards, compact log.
 
 ## Stack
 - TypeScript (strict) everywhere, pnpm workspaces, Vitest
