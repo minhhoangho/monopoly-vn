@@ -158,21 +158,25 @@ function PlayerPanel({ room, me, onSelect }: { room: RoomView; me: string; onSel
   )
 }
 
+/** One-line ticker with the latest event; click to see earlier ones. Open/closed is remembered per browser. */
 function LogPanel({ lines }: { lines: string[] }) {
-  const [open, setOpen] = useState(() => window.innerWidth > 900) // collapsed on phones so it doesn't cover the board
+  const [open, setOpen] = useState(() => load<'open' | 'closed'>('log', 'closed') === 'open')
+  const toggle = () => {
+    setOpen(!open)
+    save('log', open ? 'closed' : 'open')
+  }
+  const earlier = lines.slice(-30, -1).reverse()
   return (
-    <div className={`panel log-panel ${open ? '' : 'closed'}`}>
-      <button className="log-toggle" onClick={() => setOpen(!open)}>
-        {open ? 'Ẩn nhật ký' : 'Nhật ký'}
+    <div className="panel log-panel">
+      <button className="log-head" onClick={toggle} aria-expanded={open} title={open ? 'Thu gọn nhật ký' : 'Xem nhật ký'}>
+        <span className="log-latest">{lines.at(-1)}</span>
+        <span aria-hidden>{open ? '▾' : '▸'}</span>
       </button>
-      {open && (
+      {open && earlier.length > 0 && (
         <ul>
-          {lines
-            .slice(-8)
-            .reverse()
-            .map((line, k) => (
-              <li key={lines.length - k}>{line}</li>
-            ))}
+          {earlier.map((line, k) => (
+            <li key={lines.length - k}>{line}</li>
+          ))}
         </ul>
       )}
     </div>

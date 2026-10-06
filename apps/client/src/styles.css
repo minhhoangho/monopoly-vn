@@ -302,22 +302,35 @@ fieldset {
 .log-panel {
   left: 12px;
   bottom: 12px;
-  width: 320px;
-  padding: 8px 10px;
-  font-size: 0.8rem;
+  width: 280px;
+  font-size: 0.75rem;
+  overflow: hidden;
+}
+.log-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-weight: 600;
+  text-align: left;
+}
+.log-latest {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .log-panel ul {
-  margin: 4px 0 0;
-  padding-left: 16px;
-  max-height: 160px;
+  margin: 0;
+  padding: 4px 10px 8px 24px;
+  max-height: 120px;
   overflow: auto;
-}
-.log-panel li:first-child {
-  font-weight: 700;
-}
-.log-toggle {
-  padding: 2px 8px;
-  font-size: 0.75rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
 }
 
 .actionbar {
@@ -534,10 +547,10 @@ fieldset {
     left: 8px;
     bottom: auto;
     top: 150px;
-    width: min(320px, calc(100% - 16px));
+    width: min(280px, calc(100% - 16px));
   }
   .log-panel ul {
-    max-height: 96px;
+    max-height: 90px;
   }
   .actionbar {
     left: 8px;
