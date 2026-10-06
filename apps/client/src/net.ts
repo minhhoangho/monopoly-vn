@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Auth, ClientMsg, RoomRequest, RoomResponse, RoomView } from '@monopoly-vn/engine'
+import type { Auth, ClientMsg, EmoteEvent, RoomRequest, RoomResponse, RoomView } from '@monopoly-vn/engine'
 
 // Keep in sync with HEARTBEAT_MS / REJOIN_FAILED in packages/engine/src/room.ts (not imported: browser bundle stays engine-only).
 const HEARTBEAT_MS = 15_000
@@ -53,6 +53,7 @@ export function useConnection() {
   const [error, setError] = useState<{ message: string; at: number } | null>(null)
   const [subscribed, setSubscribed] = useState(false)
   const [clockSkew, setClockSkew] = useState(0)
+  const [lastEmote, setLastEmote] = useState<(EmoteEvent & { at: number }) | null>(null)
   const version = useRef(-1)
 
   const reset = useCallback(() => {
@@ -95,6 +96,7 @@ export function useConnection() {
     const channel = supabase
       .channel(`room:${session.code}`, { config: { private: true } })
       .on('broadcast', { event: 'room' }, ({ payload }) => applyRoom(payload as RoomView))
+      .on('broadcast', { event: 'emote' }, ({ payload }) => setLastEmote({ ...(payload as EmoteEvent), at: Date.now() }))
       .subscribe((status) => {
         setSubscribed(status === 'SUBSCRIBED')
         if (status === 'SUBSCRIBED') call({ t: 'rejoin', ...session }).then(handle) // resync after (re)connect
@@ -134,6 +136,7 @@ export function useConnection() {
     error,
     online: !session || subscribed,
     clockSkew,
+    lastEmote,
     send,
     leave,
   }

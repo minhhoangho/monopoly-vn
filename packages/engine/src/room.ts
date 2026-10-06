@@ -1,8 +1,8 @@
 // Pure room rules (F1-F12): the Vercel API loads a RoomDoc from Postgres, calls reduceRoom, saves it back.
 // No timers live anywhere: deadlines are stored and enforced whenever any request (tick/heartbeat) arrives.
 import { botAcceptsTrade, botAction } from './bot.js'
-import { applyAction, createGame, endByTime, START_MONEY, timeoutAction, TOKENS, type GameState, type Rng } from './engine.js'
-import type { RoomConfig, RoomRequest, RoomView } from './protocol.js'
+import { applyAction, createGame, EMOTES, endByTime, START_MONEY, timeoutAction, TOKENS, type GameState, type Rng } from './engine.js'
+import type { Auth, EmoteEvent, RoomConfig, RoomRequest, RoomView } from './protocol.js'
 
 export const HEARTBEAT_MS = 15_000
 /** Shown as "mất kết nối" after missing ~2 heartbeats. */
@@ -230,6 +230,14 @@ function removeSeat(d: RoomDoc, seat: Seat, ctx: RoomContext) {
     const next = humans.find((s) => ctx.now - s.lastSeen < OFFLINE_MS) ?? humans[0]
     if (next) d.hostId = next.id
   }
+}
+
+/** F16: a quick reaction is relayed only for a seated player and only from the EMOTES list. Nothing is stored. */
+export function emoteFrom(doc: RoomDoc, req: Auth & { emote: unknown }): EmoteEvent | string {
+  const seat = doc.seats.find((s) => s.id === req.id && s.secret === req.secret && !s.left)
+  if (!seat) return 'Bạn không ở trong phòng này'
+  if (typeof req.emote !== 'string' || !EMOTES.includes(req.emote)) return 'Biểu cảm không hợp lệ'
+  return { from: seat.id, emote: req.emote }
 }
 
 export function cleanConfig(c: Partial<RoomConfig> | undefined): RoomConfig | null {

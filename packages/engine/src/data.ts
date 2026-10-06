@@ -93,6 +93,22 @@ export const GROUP_COLORS: Record<Group, string> = {
 }
 
 export const TOKENS = ['Nón lá', 'Trống đồng', 'Bánh chưng', 'Xích lô', 'Hoa sen', 'Xe máy']
+
+/** Quick reactions players can send; the server only relays values from this list. */
+export const EMOTES = [
+  '😂',
+  '😭',
+  '🙏',
+  '💸',
+  '🔥',
+  '👏',
+  'Đen thôi đỏ quên đi!',
+  'Tha cho em!',
+  'Của rẻ là của ôi',
+  'Chơi lớn đi!',
+  'Nhanh lên bạn ơi!',
+  'GG',
+]
 export const PLAYER_COLORS = ['#E63946', '#1D7FE0', '#2A9D4B', '#F4A261', '#8E44AD', '#16A3A3']
 
 export type Deck = 'chance' | 'chest'

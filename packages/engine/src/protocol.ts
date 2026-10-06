@@ -39,6 +39,7 @@ export type ClientMsg =
   | { t: 'start' | 'addBot' | 'leave' }
   | { t: 'removeBot'; botId: string }
   | { t: 'action'; action: Action }
+  | { t: 'emote'; emote: string }
 
 export type RoomRequest =
   /** bots: computer players to seat right away (F13) */
@@ -48,8 +49,15 @@ export type RoomRequest =
       (
         | { t: 'rejoin' | 'heartbeat' | 'tick' | 'start' | 'leave' | 'addBot' }
         | { t: 'removeBot'; botId: string }
+        | { t: 'emote'; emote: string }
         | { t: 'config'; config: RoomConfig }
         | { t: 'action'; action: Action }
       ))
+
+/** Realtime event 'emote' on the room channel: a quick reaction, never stored. */
+export interface EmoteEvent {
+  from: string
+  emote: string
+}
 
 export type RoomResponse = { ok: true; room: RoomView | null; welcome?: Auth } | { ok: false; error: string }

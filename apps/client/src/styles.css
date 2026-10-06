@@ -595,3 +595,82 @@ fieldset {
 .landmark a {
   color: inherit;
 }
+
+/* F16 quick emotes */
+.emote-bubble {
+  background: #fff;
+  border: 3px solid var(--gold);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-weight: 700;
+  font-size: 14px;
+  width: max-content;
+  max-width: 130px;
+  text-align: center;
+  line-height: 1.25;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: bubble 0.25s ease-out;
+}
+.emote-bubble.big {
+  font-size: 30px;
+  padding: 0 8px;
+}
+@keyframes bubble {
+  from {
+    transform: translateY(8px) scale(0.6);
+    opacity: 0;
+  }
+}
+.emote-picker {
+  position: absolute;
+  right: 12px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.emote-toggle {
+  font-size: 1.4rem;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+.emote-grid {
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 6px;
+  padding: 8px;
+  max-width: 300px;
+}
+.emote-grid button {
+  font-size: 0.8rem;
+  padding: 6px 8px;
+}
+.emote-grid button.emoji {
+  font-size: 1.4rem;
+  padding: 2px 6px;
+}
+.topbar button.off {
+  opacity: 0.5;
+}
+@media (max-width: 900px) {
+  .topbar .label {
+    display: none;
+  }
+  .topbar {
+    gap: 6px;
+  }
+  .topbar button,
+  .topbar .pill {
+    padding: 6px 9px;
+  }
+  .emote-picker {
+    right: 8px;
+    bottom: 96px;
+  }
+}

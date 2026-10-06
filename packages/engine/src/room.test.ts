@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RoomRequest } from './protocol.js'
-import { BOT_ROLL_STEP_MS, BOT_STEP_MS, DROP_MS, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc, type Seat } from './room.js'
+import { BOT_ROLL_STEP_MS, BOT_STEP_MS, DROP_MS, emoteFrom, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc, type Seat } from './room.js'
 
 let ids = 0
 const ctx = (now: number) => ({ now, rng: Math.random, newSeat: () => ({ id: `p${++ids}`, secret: `s${ids}` }) })
@@ -164,4 +164,12 @@ describe('computer players (F13-F15)', () => {
     const lobby = ok(newRoom('BOT123', host, 0), { t: 'addBot', ...auth(newRoom('BOT123', host, 0), host) }).doc!
     expect(ok(lobby, { t: 'leave', ...auth(lobby, host) }).doc).toBeNull()
   })
+})
+
+it('F16: emotes are relayed only for seated players and known reactions', () => {
+  const { doc, host, guest } = started()
+  expect(emoteFrom(doc, { ...auth(doc, host), emote: '😂' })).toEqual({ from: host.id, emote: '😂' })
+  expect(emoteFrom(doc, { ...auth(doc, guest), emote: 'Đen thôi đỏ quên đi!' })).toEqual({ from: guest.id, emote: 'Đen thôi đỏ quên đi!' })
+  expect(emoteFrom(doc, { ...auth(doc, { id: host.id, secret: 'x' }), emote: '😂' })).toBe('Bạn không ở trong phòng này')
+  expect(emoteFrom(doc, { ...auth(doc, host), emote: '<script>' })).toBe('Biểu cảm không hợp lệ')
 })

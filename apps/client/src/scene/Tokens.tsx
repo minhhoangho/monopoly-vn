@@ -1,7 +1,9 @@
+import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import { LatheGeometry, Vector2, Vector3, type Group } from 'three'
 import { BOARD, type Player, type RoomView } from '@monopoly-vn/engine'
+import { play } from '../sound'
 import { playerColor, timeline } from '../util'
 import { squareFrame } from './Board'
 
@@ -163,7 +165,7 @@ function slotPosition(square: number, k: number, out = new Vector3()) {
 const STEP_SECONDS = 0.2
 const MAX_STEPS = 12 // longer moves (cards, jail) glide straight there
 
-function Token({ player, color, slot }: { player: Player; color: string; slot: number }) {
+function Token({ player, color, slot, emote }: { player: Player; color: string; slot: number; emote?: string }) {
   const ref = useRef<Group>(null)
   const anim = useRef({ square: player.position, from: new Vector3(), to: new Vector3(), t: 1, duration: 1, height: 0 })
   const target = useMemo(() => new Vector3(), [])
@@ -187,6 +189,7 @@ function Token({ player, color, slot }: { player: Player; color: string; slot: n
       slotPosition(a.square, slot, a.to)
       Object.assign(a, { t: 0, duration: direct ? 0.7 : STEP_SECONDS, height: direct ? 1.2 : 0.35 })
       g.rotation.y = squareFrame(a.square).angle
+      if (!direct) play('step')
       return
     }
     // settle into the slot (slots shift when other tokens arrive or leave)
@@ -202,11 +205,19 @@ function Token({ player, color, slot }: { player: Player; color: string; slot: n
       <group position-y={0.04}>
         <Model />
       </group>
+      {emote && (
+        // F16: speech bubble that follows the token while it moves
+        <Html position={[0, 0.95, 0]} center zIndexRange={[5, 0]}>
+          <div className={`emote-bubble ${[...emote].length <= 2 ? 'big' : ''}`} style={{ borderColor: color }}>
+            {emote}
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
 
-export function Tokens({ room }: { room: RoomView }) {
+export function Tokens({ room, emotes }: { room: RoomView; emotes: Record<string, string> }) {
   const players = room.game!.players.filter((p) => !p.bankrupt)
   return (
     <>
@@ -216,6 +227,7 @@ export function Tokens({ room }: { room: RoomView }) {
           player={p}
           color={playerColor(room, p.id)}
           slot={players.filter((x) => x.position === p.position).indexOf(p)}
+          emote={emotes[p.id]}
         />
       ))}
     </>

@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js'
 import { waitUntil } from '@vercel/functions'
 // Relative source import on purpose: Vercel compiles these .ts files to .js but does not rewrite the
 // engine package.json `exports` (which point at .ts), so `@monopoly-vn/engine/room` crashes at runtime.
-import type { RoomRequest, RoomResponse, RoomView } from '../../../packages/engine/src/protocol.js'
-import { cleanJoin, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc } from '../../../packages/engine/src/room.js'
+import type { EmoteEvent, RoomRequest, RoomResponse, RoomView } from '../../../packages/engine/src/protocol.js'
+import { cleanJoin, emoteFrom, newRoom, reduceRoom, REJOIN_FAILED, roomView, type RoomDoc } from '../../../packages/engine/src/room.js'
 
 const MAX_BODY = 16 * 1024
 const RETRIES = 5
@@ -59,6 +59,7 @@ async function create(req: Extract<RoomRequest, { t: 'create' }>): Promise<RoomR
 /** Read-modify-write with optimistic locking on `rev`; retries when another request wrote first. */
 async function update(req: Exclude<RoomRequest, { t: 'create' }>): Promise<RoomResponse> {
   const code = String(req.code ?? '').trim().toUpperCase()
+  if (req.t === 'emote') return emote(code, req)
   for (let attempt = 0; attempt < RETRIES; attempt++) {
     const { data, error } = await db.from('rooms').select('doc, rev').eq('code', code).maybeSingle()
     if (error) throw error
@@ -78,16 +79,27 @@ async function update(req: Exclude<RoomRequest, { t: 'create' }>): Promise<RoomR
 
     const room = r.doc && roomView(r.doc, now)
     // Broadcast after responding: the caller already has the new state; others get it ~0.5s later.
-    if (room && r.doc!.version !== before.version) waitUntil(broadcast(room))
+    if (room && r.doc!.version !== before.version) waitUntil(broadcast(code, 'room', room))
     return { ok: true, room, welcome: r.seat && { code, id: r.seat.id, secret: r.seat.secret } }
   }
   return fail('Máy chủ đang bận, vui lòng thử lại')
 }
 
-async function broadcast(room: RoomView) {
-  const channel = db.channel(`room:${room.code}`, { config: { private: true } })
+/** F16: relay a quick reaction to the room. Read-only: nothing is written, the room version does not change. */
+async function emote(code: string, req: Extract<RoomRequest, { t: 'emote' }>): Promise<RoomResponse> {
+  const { data, error } = await db.from('rooms').select('doc').eq('code', code).maybeSingle()
+  if (error) throw error
+  if (!data) return fail('Không tìm thấy phòng')
+  const event = emoteFrom(data.doc as RoomDoc, req)
+  if (typeof event === 'string') return fail(event)
+  await broadcast(code, 'emote', event)
+  return { ok: true, room: roomView(data.doc as RoomDoc, Date.now()) }
+}
+
+async function broadcast(code: string, event: 'room' | 'emote', payload: RoomView | EmoteEvent) {
+  const channel = db.channel(`room:${code}`, { config: { private: true } })
   try {
-    await channel.httpSend('room', room)
+    await channel.httpSend(event, payload)
   } catch (e) {
     console.error('broadcast failed', e) // state is saved; clients resync on next heartbeat
   } finally {

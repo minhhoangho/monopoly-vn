@@ -146,9 +146,11 @@ interface SceneProps {
   onSelect: (i: number | null) => void
   quality: Quality
   controls: RefObject<Controls | null>
+  /** playerId -> emote currently shown above their token */
+  emotes: Record<string, string>
 }
 
-export function Scene({ room, selected, onSelect, quality, controls }: SceneProps) {
+export function Scene({ room, selected, onSelect, quality, controls, emotes }: SceneProps) {
   const high = quality === 'high'
   return (
     <Canvas
@@ -176,7 +178,7 @@ export function Scene({ room, selected, onSelect, quality, controls }: SceneProp
         <meshStandardMaterial color="#1f4a3c" roughness={1} />
       </mesh>
       <Board room={room} selected={selected} onSelect={onSelect} />
-      <Tokens room={room} />
+      <Tokens room={room} emotes={emotes} />
       <Dice room={room} />
       <OrbitControls
         ref={controls}

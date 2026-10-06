@@ -160,6 +160,9 @@ Cơ hội 16 thẻ, Khí vận 30 thẻ (16 thẻ thường + 14 thẻ "troll" �
 - F14. Máy chạy trên server và đi từng bước để người chơi theo dõi (~2,5 giây sau mỗi lần đổ, ~0,8 giây sau thao tác khác). Máy mua đất khi còn tiền dự phòng, xây nhà khi đủ nhóm màu, bán nhà/thế chấp khi nợ, trả lời đề nghị giao dịch ngay. Máy chỉ chủ động giao dịch với máy khác để gom đủ nhóm màu, không gửi đề nghị cho người.
 - F15. Khi không còn người nào đang chơi (phá sản, rời ván hoặc rớt mạng), ván kết thúc ngay và ai giàu nhất thắng. Phòng bị xoá khi mọi người đã rời đi.
 
+### 5.5 Biểu cảm nhanh
+- F16. Người chơi bấm nút 😀 để gửi một trong 12 biểu cảm có sẵn (6 emoji + câu cửa miệng như "Đen thôi đỏ quên đi!", "Tha cho em!"). Bong bóng hiện trên đầu quân cờ của người gửi khoảng 3,5 giây, ai cũng thấy. Server chỉ chuyển tiếp biểu cảm nằm trong danh sách và chỉ cho người đang ngồi trong phòng; không lưu lại. Giao diện giới hạn mỗi người 1 lần / 1,5 giây (server chưa giới hạn tần suất).
+
 ## 6. Giao diện (UI/UX)
 - U1. Màn hình: Trang chủ → Sảnh chờ phòng → Bàn cờ → Kết quả. Trang chủ/sảnh là HTML; bàn cờ là cảnh 3D.
 - U2. Bàn cờ 3D: 40 ô, quân cờ 3D, nhà/khách sạn 3D, chủ sở hữu (cờ/viền màu người chơi trên ô).
@@ -168,7 +171,7 @@ Cơ hội 16 thẻ, Khí vận 30 thẻ (16 thẻ thường + 14 thẻ "troll" �
 - U5. Animation: xúc xắc 3D lăn, quân nhảy từng ô, nhà mọc lên khi xây, tiền cộng/trừ.
 - U6. Hiển thị tiền dạng `2.000.000đ` hoặc rút gọn `2Tr`.
 - U7. Responsive: dùng được trên màn hình ≥ 360px chiều ngang.
-- U8. Âm thanh bật/tắt được.
+- U8. Âm thanh tổng hợp bằng Web Audio (không dùng file): xúc xắc, bước quân, mua đất, trả tiền, rút thẻ, vào tù, xây nhà, phá sản, chiến thắng, biểu cảm. Nhạc nền kiểu đàn tranh ngũ cung, chỉ phát trong ván. Hiệu ứng (mặc định bật) và nhạc (mặc định tắt) bật/tắt riêng, trình duyệt ghi nhớ lựa chọn.
 
 ### 6.1 Camera
 - U9. Góc nhìn mặc định nghiêng ~45° toàn bàn cờ.

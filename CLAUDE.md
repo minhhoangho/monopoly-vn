@@ -23,7 +23,8 @@ packages/engine/src/room.ts    # pure room rules (F1-F15): join, start, timeouts
 packages/engine/src/bot.ts     # computer player: picks one legal action per call (validated via applyAction)
 packages/engine/src/protocol.ts# request/response/view types shared by API and client
 apps/client/api/room.ts        # Vercel Function POST /api/room: load doc -> reduceRoom -> save (optimistic lock) -> broadcast
-apps/client/src/net.ts         # client transport: fetch /api/room + Supabase channel `room:<code>` + heartbeat/tick
+apps/client/src/net.ts         # client transport: fetch /api/room + Supabase channel `room:<code>` (events: room, emote) + heartbeat/tick
+apps/client/src/sound.ts       # synthesized sound effects + pentatonic background music (Web Audio, no audio files)
 apps/client/src/scene/         # R3F scene (board, tokens, dice)
 supabase/migrations/           # SQL schema + RLS
 ```

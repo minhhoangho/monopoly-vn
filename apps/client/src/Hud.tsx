@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   AIRPORT_RENT,
   BOARD,
+  EMOTES,
   formatMoney,
   GROUP_COLORS,
   JAIL_FINE,
@@ -16,6 +17,7 @@ import {
 } from '@monopoly-vn/engine'
 import type { Connection } from './net'
 import { Scene, type Controls, type Quality } from './scene/Scene'
+import { musicIsOn, play, setMusic, setSound, soundOn, startMusicIfOn, stopMusic, type Effect } from './sound'
 import { formatShort, landmarkOf, landmarkPhoto, load, playerColor, save, TOKEN_ICONS } from './util'
 
 interface Props {
@@ -39,6 +41,45 @@ function useSettled(rollCount: number) {
   return settled
 }
 
+/** U8: newest log lines -> one sound per update; the most dramatic event wins. */
+const SOUND_RULES: [RegExp, Effect][] = [
+  [/giành chiến thắng/, 'win'],
+  [/phá sản/, 'bankrupt'],
+  [/bị vào tù/, 'jail'],
+  [/tiền thuê|nộp |trả \d/i, 'pay'],
+  [/rút thẻ/, 'card'],
+  [/ mua /, 'buy'],
+  [/ xây /, 'build'],
+  [/qua Xuất phát|trả hết nợ|chấp nhận giao dịch/, 'coin'],
+]
+
+function useGameSounds(game: GameState) {
+  const prev = useRef(game)
+  useEffect(() => {
+    const before = prev.current
+    prev.current = game
+    if (before === game) return
+    const rolled = game.rollCount !== before.rollCount
+    if (rolled) play('dice')
+    const last = before.log.at(-1)
+    const fresh = game.log.slice(last === undefined ? 0 : game.log.lastIndexOf(last) + 1)
+    const effect = SOUND_RULES.find(([re]) => fresh.some((line) => re.test(line)))?.[1]
+    if (effect) setTimeout(() => play(effect), rolled ? 1400 : 0) // after the dice land
+  }, [game])
+}
+
+/** F16: emotes received over realtime, shown above the sender's token for a few seconds. */
+function useEmotes(last: Connection['lastEmote']) {
+  const [shown, setShown] = useState<Record<string, { emote: string; at: number }>>({})
+  useEffect(() => {
+    if (!last) return
+    play('pop')
+    setShown((s) => ({ ...s, [last.from]: { emote: last.emote, at: last.at } }))
+    setTimeout(() => setShown(({ [last.from]: current, ...rest }) => (current?.at === last.at ? rest : { ...rest, [last.from]: current })), 3500)
+  }, [last])
+  return Object.fromEntries(Object.entries(shown).map(([id, e]) => [id, e.emote]))
+}
+
 export function Game({ conn, room, me }: Props) {
   const game = room.game!
   const [selected, setSelected] = useState<number | null>(null)
@@ -47,6 +88,12 @@ export function Game({ conn, room, me }: Props) {
   const controls = useRef<Controls>(null)
   const settled = useSettled(game.rollCount)
   const act: Act = (action) => conn.send({ t: 'action', action })
+  const emotes = useEmotes(conn.lastEmote)
+  useGameSounds(game)
+  useEffect(() => {
+    startMusicIfOn()
+    return stopMusic
+  }, [])
 
   const toggleQuality = () => {
     const next = quality === 'high' ? 'low' : 'high'
@@ -56,26 +103,30 @@ export function Game({ conn, room, me }: Props) {
 
   return (
     <div className="game">
-      <Scene room={room} selected={selected} onSelect={setSelected} quality={quality} controls={controls} />
+      <Scene room={room} selected={selected} onSelect={setSelected} quality={quality} controls={controls} emotes={emotes} />
 
       <div className="topbar">
         <span className="pill">
-          Phòng <b>{room.code}</b>
+          <span className="label">Phòng </span>
+          <b>{room.code}</b>
         </span>
         <Countdown room={room} skew={conn.clockSkew} />
         <span className="spacer" />
+        <SoundToggles />
         <button title="Về góc nhìn mặc định" onClick={() => controls.current?.reset()}>
           🎥
         </button>
         <button title="Chất lượng đồ hoạ" onClick={toggleQuality}>
-          {quality === 'high' ? 'Đồ hoạ: Cao' : 'Đồ hoạ: Thấp'}
+          {quality === 'high' ? '✨' : '🔋'}
+          <span className="label"> Đồ hoạ: {quality === 'high' ? 'Cao' : 'Thấp'}</span>
         </button>
         <button
           onClick={() => {
             if (game.phase === 'ended' || confirm('Rời ván sẽ bị xử thua. Bạn chắc chứ?')) conn.leave()
           }}
+          title="Rời ván"
         >
-          Rời ván
+          🚪<span className="label"> Rời ván</span>
         </button>
       </div>
 
@@ -85,8 +136,68 @@ export function Game({ conn, room, me }: Props) {
       {selected !== null && <SquarePanel i={selected} room={room} me={me} act={act} onClose={() => setSelected(null)} />}
       {tradeOpen && <TradeDialog room={room} me={me} act={act} onClose={() => setTradeOpen(false)} />}
       {game.trade?.to === me && <IncomingTrade room={room} trade={game.trade} act={act} />}
+      <EmotePicker send={(emote) => conn.send({ t: 'emote', emote })} />
       {settled && <CardToast game={game} />}
       {game.phase === 'ended' && <Result room={room} onLeave={conn.leave} />}
+    </div>
+  )
+}
+
+function SoundToggles() {
+  const [sound, setSoundState] = useState(soundOn)
+  const [music, setMusicState] = useState(musicIsOn)
+  return (
+    <>
+      <button
+        title={sound ? 'Tắt âm thanh' : 'Bật âm thanh'}
+        aria-pressed={sound}
+        onClick={() => {
+          setSound(!sound)
+          setSoundState(!sound)
+        }}
+      >
+        {sound ? '🔊' : '🔇'}
+      </button>
+      <button
+        title={music ? 'Tắt nhạc nền' : 'Bật nhạc nền'}
+        aria-pressed={music}
+        className={music ? '' : 'off'}
+        onClick={() => {
+          setMusic(!music)
+          setMusicState(!music)
+        }}
+      >
+        🎵
+      </button>
+    </>
+  )
+}
+
+const EMOTE_COOLDOWN_MS = 1500
+
+function EmotePicker({ send }: { send: (emote: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const [cooling, setCooling] = useState(false)
+  const pick = (emote: string) => {
+    send(emote)
+    setOpen(false)
+    setCooling(true)
+    setTimeout(() => setCooling(false), EMOTE_COOLDOWN_MS)
+  }
+  return (
+    <div className="emote-picker">
+      {open && (
+        <div className="panel emote-grid" role="menu">
+          {EMOTES.map((emote) => (
+            <button key={emote} role="menuitem" className={[...emote].length <= 2 ? 'emoji' : ''} disabled={cooling} onClick={() => pick(emote)}>
+              {emote}
+            </button>
+          ))}
+        </div>
+      )}
+      <button className="emote-toggle" title="Biểu cảm" aria-expanded={open} onClick={() => setOpen(!open)}>
+        😀
+      </button>
     </div>
   )
 }
